@@ -3,20 +3,44 @@ from latex2sympy2 import latex2sympy
 from manim import *
 
 pi = PI
+g = 9.81
 
 
 def vector_at_point(point: np.ndarray, vector: np.ndarray) -> Arrow:
     out_point = np.add(point, vector)
-    return Arrow(start=point, end=out_point, buff=0)
+    return Arrow(start=point, end=out_point, buff=0, stroke_width=1)
+
+
+def unit_vector_at_point(point: np.ndarray, vector: np.ndarray) -> Arrow:
+    mag = np.linalg.norm(vector)
+    vector = 0.3 * (1 / mag) * vector
+    out_point = np.add(point, vector)
+    # const newval = (n - start1) / (stop1 - start1) * (stop2 - start2) + start2;
+    mapped_mag = (mag - 0) / (100 - 0) * (2 * PI - 0) + 0
+    return Arrow(
+        start=point,
+        end=out_point,
+        buff=0,
+        color=ManimColor.from_hsv(np.array([mapped_mag, 1, 1])),
+        stroke_width=1,
+    )
+
+
+def theta_double_dot(theta: float, theta_dot: float):
+    L = 5
+    mew = 1
+    return (-g / L) * np.sin(theta) - mew * theta_dot
 
 
 class MainScene(Scene):
     def construct(self):
         plane = NumberPlane(
-            faded_line_ratio=6,
+            faded_line_ratio=5,
             x_range=(-3 * PI, 3 * PI, PI / 2),
-            # y_axis_config={"include_numbers": False},
+            y_range=(-5, 5, 1),
+            y_axis_config={"include_numbers": True, "font_size": 24},
         )
+
         x_labels = [
             "\\frac{-5\\pi}{2}",
             "-\\tau",
@@ -30,39 +54,57 @@ class MainScene(Scene):
             "\\tau",
             "\\frac{5\\pi}{2}",
         ]
-        # axes = Axes(
-        #     x_range=(-2 * PI, 2 * PI, PI / 2),
-        #     x_length=config.frame_width,
-        #     y_length=config.frame_height,
-        #     axis_config={"include_tip": False},
-        #     y_axis_config={"scaling": LinearBase(scale_factor=0.5)},
-        # )
-        # axes.center()
-        thing = [
-            (
-                MathTex(t, font_size=24).next_to(
-                    plane.x_axis.n2p(x), 0.2 * DOWN + 0.25 * RIGHT
-                )
-                # .shift(plane.c2p(x, 0))
-            )
-            for t, x in zip(x_labels, np.arange(-5 * PI / 2, 5 * PI / 2, PI / 2))
-            if t != "0"
-        ]
 
-        x_tex_lables = VGroup(*thing)
+        x_tex_lables = VGroup(
+            *[
+                (
+                    MathTex(t, font_size=24).next_to(
+                        plane.x_axis.n2p(x), 0.3 * DOWN + 0.3 * RIGHT
+                    )
+                )
+                for t, x in zip(x_labels, np.arange(-5 * PI / 2, 5 * PI / 2, PI / 2))
+                if t != "0"
+            ]
+        )
 
         self.play(Create(plane), Create(x_tex_lables))
 
-        # axes = Axes(
-        #     x_range=(-10, 10, 1),
-        #     y_range=(-5, 5, 1),
-        #     axis_config={"include_numbers": True},
-        # )
-        # self.play(Create(axes))
+        GAP = 0.5
 
-        # plane = NumberPlane(
-        #     x_range=[-3 * PI, 3 * PI, PI / 2], y_range=[-1, 7, 1], faded_line_ratio=6
+        # x_axis_vectors = VGroup(
+        #     *[
+        #         unit_vector_at_point(
+        #             plane.c2p(x, 0), np.array([0, theta_double_dot(x, 0), 0])
+        #         )
+        #         for x in np.arange(-5 * PI / 2, 5 * PI / 2, GAP)
+        #     ]
         # )
-        # self.play(Create(plane))
+        # y_axis_vectors = VGroup(
+        #     *[
+        #         unit_vector_at_point(
+        #             plane.c2p(0, x), np.array([x, theta_double_dot(x, 0), 0])
+        #         )
+        #         for x in np.arange(-4, 4, GAP)
+        #     ]
+        # )
+        # self.play(Create(x_axis_vectors), Create(y_axis_vectors))
+
+        vectors = VGroup(
+            *[
+                VGroup(
+                    *[
+                        unit_vector_at_point(
+                            plane.c2p(theta, theta_dot),
+                            np.array(
+                                [theta_dot, theta_double_dot(theta, theta_dot), 0]
+                            ),
+                        )
+                        for theta in np.arange(-5 * PI / 2, 5 * PI / 2, GAP)
+                    ]
+                )
+                for theta_dot in np.arange(-5, 5, GAP)
+            ]
+        )
+        self.play(Create(vectors))
 
         self.wait(5)
