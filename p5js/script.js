@@ -34,14 +34,17 @@ class Arrow {
     noStroke();
     push();
     translate(this.b.x, this.b.y);
-    // Got the first quadrant working but still need to do the rest.
-    if (this.b.x - this.a.x >= 0 && this.b.y - this.a.y >= 0) {
-      rotate(-atan((this.b.x - this.a.x) / (this.b.y - this.a.y)));
+    const x = this.b.x - this.a.x;
+    const y = this.b.y - this.a.y;
+    const xOverY = x / y;
+    if (x >= 0 && y >= 0) {
+      rotate(-atan(xOverY));
     } else if (this.b.x - this.a.x < 0 && this.b.y - this.a.y >= 0) {
-      rotate(atan(-(this.b.x - this.a.x) / (this.b.y - this.a.y)));
+      rotate(atan(-xOverY));
     } else if (this.b.x - this.a.x < 0 && this.b.y - this.a.y < 0) {
-      rotate(atan(PI / 2));
+      rotate(PI / 2 + atan(1 / xOverY));
     } else if (this.b.x - this.a.x >= 0 && this.b.y - this.a.y < 0) {
+      rotate(-PI / 2 - atan(-1 / xOverY));
     }
     triangle(
       -this.triangleSide / 2,
