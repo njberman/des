@@ -1,6 +1,0 @@
-# This file is used internally by FFMPEG.
-file 'file:C:/Users/njber/Coding/des/media/videos/scene/1080p60/partial_movie_files/MainScene/3529212410_583533051_223132457.mp4'
-file 'file:C:/Users/njber/Coding/des/media/videos/scene/1080p60/partial_movie_files/MainScene/3040924799_4021724393_2228886506.mp4'
-file 'file:C:/Users/njber/Coding/des/media/videos/scene/1080p60/partial_movie_files/MainScene/3040924799_1585666814_3533274343.mp4'
-file 'file:C:/Users/njber/Coding/des/media/videos/scene/1080p60/partial_movie_files/MainScene/3040924799_803804213_3921608086.mp4'
-file 'file:C:/Users/njber/Coding/des/media/videos/scene/1080p60/partial_movie_files/MainScene/3040924799_255102487_3431397065.mp4'
