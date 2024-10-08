@@ -26,14 +26,53 @@ def unit_vector_at_point(point: np.ndarray, vector: np.ndarray) -> Arrow:
     )
 
 
-def theta_double_dot(theta: float, theta_dot: float):
+def theta_double_dot(theta: float, theta_dot: float) -> float:
     L = 5
     mew = 1
     return (-g / L) * np.sin(theta) - mew * theta_dot
 
 
+def s_double_dot(s: float, v: float) -> float:
+    mew = 1
+    return -g - mew * v
+
+
+def x_double_dot_van_der_pol(x: float, x_dot: float) -> float:
+    mew = 1
+    return mew * (1 - x**2) * x_dot - x
+
+
+def state_velocity_vector(point: np.ndarray, de) -> np.ndarray:
+    return np.array([point[1], de(point[0], point[1]), 0])
+
+
+def simulate_system_evolution(start_point: np.ndarray, dt: float, de) -> VGroup:
+    points = [start_point]
+    mobjects: list[Dot | Line] = [Dot(point=start_point, radius=0.03)]
+
+    while True:
+        last_point = points[-1]
+
+        next_point = last_point + dt * state_velocity_vector(last_point, de)
+
+        if len(points) >= 2500:
+            break
+
+        points.append(next_point)
+
+        mobjects.append(
+            Dot(point=next_point, radius=0.03),
+        )
+        mobjects.append(
+            Line(start=last_point, end=next_point, stroke_width=0.5),
+        )
+
+    return VGroup(*mobjects)
+
+
 class MainScene(Scene):
     def construct(self):
+        current_de = theta_double_dot
         plane = NumberPlane(
             faded_line_ratio=5,
             x_range=(-3 * PI, 3 * PI, PI / 2),
@@ -71,32 +110,14 @@ class MainScene(Scene):
 
         GAP = 0.5
 
-        # x_axis_vectors = VGroup(
-        #     *[
-        #         unit_vector_at_point(
-        #             plane.c2p(x, 0), np.array([0, theta_double_dot(x, 0), 0])
-        #         )
-        #         for x in np.arange(-5 * PI / 2, 5 * PI / 2, GAP)
-        #     ]
-        # )
-        # y_axis_vectors = VGroup(
-        #     *[
-        #         unit_vector_at_point(
-        #             plane.c2p(0, x), np.array([x, theta_double_dot(x, 0), 0])
-        #         )
-        #         for x in np.arange(-4, 4, GAP)
-        #     ]
-        # )
-        # self.play(Create(x_axis_vectors), Create(y_axis_vectors))
-
         vectors = VGroup(
             *[
                 VGroup(
                     *[
                         unit_vector_at_point(
                             plane.c2p(theta, theta_dot),
-                            np.array(
-                                [theta_dot, theta_double_dot(theta, theta_dot), 0]
+                            state_velocity_vector(
+                                np.array([theta, theta_dot, 0]), current_de
                             ),
                         )
                         for theta in np.arange(-5 * PI / 2, 5 * PI / 2, GAP)
@@ -106,5 +127,14 @@ class MainScene(Scene):
             ]
         )
         self.play(Create(vectors))
+
+        self.wait(2.5)
+
+        dt = 0.01
+
+        simulation = simulate_system_evolution(
+            np.array([PI - 0.1, 0.5, 0]), dt, current_de
+        )
+        self.play(Create(simulation))
 
         self.wait(5)
