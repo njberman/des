@@ -40,6 +40,7 @@ class Arrow {
     } else if (this.b.x - this.a.x < 0 && this.b.y - this.a.y >= 0) {
       rotate(atan(-(this.b.x - this.a.x) / (this.b.y - this.a.y)));
     } else if (this.b.x - this.a.x < 0 && this.b.y - this.a.y < 0) {
+      rotate(atan(PI / 2));
     } else if (this.b.x - this.a.x >= 0 && this.b.y - this.a.y < 0) {
     }
     triangle(
