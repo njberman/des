@@ -27,15 +27,20 @@ class Arrow {
 
   draw() {
     stroke(this.color);
-    strokeWeight(this.strokeWeight);
+    // strokeWeight(this.strokeWeight);
     line(this.a.x, this.a.y, this.b.x, this.b.y);
 
     fill(this.color);
+    noStroke();
     push();
     translate(this.b.x, this.b.y);
     // Got the first quadrant working but still need to do the rest.
     if (this.b.x - this.a.x >= 0 && this.b.y - this.a.y >= 0) {
       rotate(-atan((this.b.x - this.a.x) / (this.b.y - this.a.y)));
+    } else if (this.b.x - this.a.x < 0 && this.b.y - this.a.y >= 0) {
+      rotate(atan(-(this.b.x - this.a.x) / (this.b.y - this.a.y)));
+    } else if (this.b.x - this.a.x < 0 && this.b.y - this.a.y < 0) {
+    } else if (this.b.x - this.a.x >= 0 && this.b.y - this.a.y < 0) {
     }
     triangle(
       -this.triangleSide / 2,
