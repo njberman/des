@@ -1,10 +1,61 @@
 let CONFIG;
 let g = 9.81;
 
+function hslToRgb(h, s, l) {
+  s /= 100;
+  l /= 100;
+
+  let c = (1 - Math.abs(2 * l - 1)) * s;
+  let x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  let m = l - c / 2;
+  let r = 0,
+    g = 0,
+    b = 0;
+
+  if (0 <= h && h < 60) {
+    r = c;
+    g = x;
+    b = 0;
+  } else if (60 <= h && h < 120) {
+    r = x;
+    g = c;
+    b = 0;
+  } else if (120 <= h && h < 180) {
+    r = 0;
+    g = c;
+    b = x;
+  } else if (180 <= h && h < 240) {
+    r = 0;
+    g = x;
+    b = c;
+  } else if (240 <= h && h < 300) {
+    r = x;
+    g = 0;
+    b = c;
+  } else if (300 <= h && h < 360) {
+    r = c;
+    g = 0;
+    b = x;
+  }
+
+  r = Math.round((r + m) * 255);
+  g = Math.round((g + m) * 255);
+  b = Math.round((b + m) * 255);
+
+  return { r, g, b };
+}
+
 function thetaDoubleDotPendulum(theta, thetaDot) {
-  const L = 1;
+  const L = 5;
   const mew = 1;
   return (-g / L) * sin(theta) - mew * thetaDot;
+}
+
+function rotatePoint(point, angle) {
+  return createVector(
+    point.x * cos(angle) - point.y * sin(angle),
+    point.x * sin(angle) + point.y * cos(angle),
+  );
 }
 
 class Arrow {
@@ -14,7 +65,28 @@ class Arrow {
     this.color = color || 'white';
     this.strokeWeight = strokeWeight || 2;
 
-    this.triangleSide = this.strokeWeight * 4;
+    this.triangleSide = 5.5 * this.strokeWeight;
+
+    this.rotationAngle = 0;
+    this.calculate();
+  }
+
+  calculate() {
+    this.sOver2 = this.triangleSide / 2;
+    const x = this.b.x - this.a.x;
+    const y = this.b.y - this.a.y;
+
+    const xOverY = x / y;
+
+    if (x >= 0 && y >= 0) {
+      this.rotationAngle = -atan(xOverY);
+    } else if (this.b.x - this.a.x < 0 && this.b.y - this.a.y >= 0) {
+      this.rotationAngle = atan(-xOverY);
+    } else if (this.b.x - this.a.x < 0 && this.b.y - this.a.y < 0) {
+      this.rotationAngle = PI / 2 + atan(1 / xOverY);
+    } else if (this.b.x - this.a.x >= 0 && this.b.y - this.a.y < 0) {
+      this.rotationAngle = -PI / 2 - atan(-1 / xOverY);
+    }
   }
 
   setA(newA) {
@@ -25,36 +97,162 @@ class Arrow {
     this.b = newB;
   }
 
+  setColor(newColor) {
+    this.color = newColor;
+  }
+
   draw() {
     stroke(this.color);
-    // strokeWeight(this.strokeWeight);
-    line(this.a.x, this.a.y, this.b.x, this.b.y);
+    strokeWeight(this.strokeWeight);
 
+    push();
     fill(this.color);
     noStroke();
-    push();
+
     translate(this.b.x, this.b.y);
-    const x = this.b.x - this.a.x;
-    const y = this.b.y - this.a.y;
-    const xOverY = x / y;
-    if (x >= 0 && y >= 0) {
-      rotate(-atan(xOverY));
-    } else if (this.b.x - this.a.x < 0 && this.b.y - this.a.y >= 0) {
-      rotate(atan(-xOverY));
-    } else if (this.b.x - this.a.x < 0 && this.b.y - this.a.y < 0) {
-      rotate(PI / 2 + atan(1 / xOverY));
-    } else if (this.b.x - this.a.x >= 0 && this.b.y - this.a.y < 0) {
-      rotate(-PI / 2 - atan(-1 / xOverY));
-    }
+    rotate(this.rotationAngle);
+
     triangle(
-      -this.triangleSide / 2,
-      -(this.triangleSide / 2) * tan(PI / 3),
-      this.triangleSide / 2,
-      -(this.triangleSide / 2) * tan(PI / 3),
+      -this.sOver2,
+      -this.sOver2 * sqrt(3),
+      this.sOver2,
+      -this.sOver2 * sqrt(3),
       0,
       0,
     );
+
+    // This bits a bit dodgy, but it's basically drawing the line up to the base of the triangle so we don't see any extrusions.
+    stroke(this.color);
+    strokeWeight(this.strokeWeight);
+
+    rotate(-this.rotationAngle);
+    const newPoint = rotatePoint(
+      createVector(0, -this.sOver2 * sqrt(3)),
+      this.rotationAngle,
+    );
+
+    line(this.a.x - this.b.x, this.a.y - this.b.y, newPoint.x, newPoint.y);
     pop();
+  }
+}
+
+class VectorAtPoint extends Arrow {
+  constructor(point, vector, showMagByColor, color) {
+    const newPoint = point.copy().add(vector);
+    super(point.x, point.y, newPoint.x, newPoint.y, color, 2);
+
+    this.point = point.copy();
+    this.vector = vector.copy();
+    this.setVector();
+
+    if (showMagByColor) this.showMagByColor();
+  }
+
+  setPoint(newPoint) {
+    this.point = newPoint.copy();
+    this.setA(this.point);
+  }
+
+  setVector(newVector) {
+    if (newVector !== undefined) this.vector = newVector.copy();
+    this.setB(this.point.copy().add(this.vector));
+  }
+
+  showMagByColor() {
+    const mag = this.vector.mag();
+    this.vector = this.vector.copy().normalize().mult(30);
+    this.setVector();
+
+    const hue = map(mag, 0, 14, 0, 360);
+    const { r, g, b } = hslToRgb(hue, 100, 50);
+    this.color = color(r, g, b, 255);
+
+    this.strokeWeight = 1;
+    this.triangleSide = 10;
+    this.calculate();
+  }
+}
+
+class PhaseSpace {
+  constructor(differentialEquation, grid) {
+    this.vectors = [];
+
+    this.differentialEquation = differentialEquation;
+    this.grid = grid;
+
+    for (let x = grid.xMin; x <= grid.xMax; x += CONFIG.constants.GAP) {
+      this.vectors.push([]);
+      for (let y = grid.yMin; y <= grid.yMax; y += CONFIG.constants.GAP) {
+        this.vectors[this.vectors.length - 1].push(
+          new VectorAtPoint(
+            grid.c2p(createVector(x, y)),
+            this.velocityVector(createVector(x, y)),
+            true,
+          ),
+        );
+      }
+    }
+
+    this.simulatedPoints = [];
+    this.simulating = false;
+    this.simulatingIndex = 0;
+    this.simulatedVectors = [];
+  }
+
+  draw() {
+    for (const vertLineOfVectors of this.vectors) {
+      for (const vector of vertLineOfVectors) {
+        vector.draw();
+      }
+    }
+
+    if (this.simulating) {
+      for (let i = 0; i <= this.simulatingIndex; i++) {
+        const point = this.grid.c2p(this.simulatedPoints[i]);
+        noStroke();
+        fill(255);
+        circle(point.x, point.y, 10);
+
+        if (i !== 0) {
+          stroke(255);
+          strokeWeight(1);
+          const lastPoint = this.grid.c2p(this.simulatedPoints[i - 1]);
+          line(point.x, point.y, lastPoint.x, lastPoint.y);
+        }
+
+        // this.simulatedVectors[i].draw();
+      }
+
+      if (this.simulatingIndex < this.simulatedPoints.length - 1)
+        this.simulatingIndex++;
+    }
+  }
+
+  velocityVector(point) {
+    return createVector(point.y, this.differentialEquation(point.x, point.y));
+  }
+
+  simulateSystemEvolution(startPoint) {
+    const Dt = 0.1;
+    this.simulatedPoints = [startPoint];
+    this.simulatedVectors = [
+      new VectorAtPoint(startPoint, this.velocityVector(startPoint), true),
+    ];
+    console.log(startPoint, this.simulatedVectors);
+
+    // Start at Dt because we already have startPoint in simulatedPoints
+    for (let t = Dt; t < 100; t += Dt) {
+      const prevPoint =
+        this.simulatedPoints[this.simulatedPoints.length - 1].copy();
+
+      const velocityVector = this.velocityVector(prevPoint);
+
+      const nextPoint = prevPoint.add(velocityVector.mult(Dt));
+      this.simulatedPoints.push(nextPoint);
+    }
+
+    this.simulating = true;
+    this.simulatingIndex = 0;
   }
 }
 
@@ -125,11 +323,7 @@ class Grid {
 
     this.yLines = [];
     this.yFadedLines = [];
-    for (
-      let y = -height / 2;
-      y <= height / 2;
-      y += height / (this.yDistance / this.yStep)
-    ) {
+    for (let y = -height / 2; y <= height / 2; y += this.yLineDistance) {
       this.yLines.push(
         new Line(-width / 2, y, width / 2, y, CONFIG.colors.gridLines),
       );
@@ -158,6 +352,24 @@ class Grid {
     this.coordinates = !this.coordinates;
   }
 
+  c2p(coordinate) {
+    return createVector(
+      (coordinate.x / this.xStep) * this.xLineDistance -
+        this.xLines[this.xAxisIndex].a.x,
+      (coordinate.y / this.yStep) * this.yLineDistance -
+        this.yLines[this.yAxisIndex].a.y,
+    );
+  }
+
+  p2c(point) {
+    return createVector(
+      (this.xStep / this.xLineDistance) *
+        (point.x + this.xLines[this.xAxisIndex].a.x),
+      (this.yStep / this.yLineDistance) *
+        (point.y + this.yLines[this.yAxisIndex].a.y),
+    );
+  }
+
   draw() {
     for (const xLine of this.xLines) {
       const index = this.xLines.indexOf(xLine);
@@ -173,12 +385,12 @@ class Grid {
 
       if (this.xPi) {
         const rationalPart = num / PI;
-        num = `${round(rationalPart, 2)}π`;
+        num = `${abs(rationalPart) !== 1 ? round(rationalPart, 2) : rationalPart === -1 ? '-' : ''}π`;
       }
 
       scale(1, -1);
       noStroke();
-      textSize(16);
+      textSize(20);
       fill(CONFIG.colors.textColor);
 
       textAlign(LEFT, TOP);
@@ -225,11 +437,11 @@ class Grid {
 let grid;
 let CMUFont;
 
+let pendulumPhaseSpace;
+
 function preload() {
   CMUFont = loadFont('assets/cmu.ttf');
 }
-
-let arrow;
 
 function setup() {
   let canvasInset = 350;
@@ -243,16 +455,19 @@ function setup() {
       axesLines: color(255, 255, 255, 255),
       textColor: color(255, 255, 255, 255),
     },
+    constants: {
+      GAP: 0.4,
+    },
   };
 
   translate(width / 2, height / 2);
   scale(1, -1);
   textFont(CMUFont);
 
-  grid = new Grid([-7, 7, 1], false, [-4, 4, 1], false, 5);
+  grid = new Grid([-3 * PI, 3 * PI, PI / 2], true, [-4, 4, 1], false, 5);
   grid.toggleCoordinates();
 
-  arrow = new Arrow(0, 0, 100, 0, 'orange', 10);
+  pendulumPhaseSpace = new PhaseSpace(thetaDoubleDotPendulum, grid);
 }
 
 function draw() {
@@ -262,12 +477,13 @@ function draw() {
   background(0);
 
   grid.draw();
-
-  arrow.draw();
-
-  arrow.setB(createVector(mouseX - width / 2, -mouseY + height / 2));
+  pendulumPhaseSpace.draw();
 }
 
 function mousePressed() {
-  grid.toggleCoordinates();
+  const point = grid.p2c(
+    createVector(mouseX - width / 2, -mouseY + height / 2),
+  );
+
+  pendulumPhaseSpace.simulateSystemEvolution(point);
 }
