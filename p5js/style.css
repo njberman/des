@@ -1,4 +1,5 @@
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
 }
@@ -8,6 +9,24 @@ body {
   height: 100vh;
   display: grid;
   place-items: center;
+}
+
+main {
+  width: 100%;
+  height: 100%;
+  display: grid;
+
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: 28.125vw calc(100vh - 28.125vw);
+}
+
+main .canvas-wrapper {
+  display: grid;
+  place-items: center;
+}
+
+main .canvas-wrapper#pendulum-graph {
+  grid-column: 1 / -1;
 }
 
 canvas {
