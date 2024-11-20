@@ -219,10 +219,16 @@ let pendulumGraphSketch = (p) => {
       p.windowHeight - Math.round((9 / 16) * 0.5 * tempWidth) - BUFFER,
     );
     canv.parent('pendulum-graph');
+
+    pendulumGraphAxes = new Grid(p, [-1, 10, 1], false, [-5, 5, 1], false, 5);
   };
 
   p.draw = () => {
     p.background(0);
+    p.translate(p.width / 2, p.height / 2);
+    p.scale(1, -1);
+
+    pendulumGraphAxes.draw();
   };
 };
 
@@ -463,95 +469,8 @@ class Axes {
     this.yPi = yPi;
 
     this.coordinates = false;
-
-    this.xLines = [];
-    for (let x = -p.width / 2; x <= p.width / 2; x += this.xLineDistance) {
-      this.xLines.push(
-        new Line(p, x, p.height / 2, x, -p.height / 2, CONFIG.colors.gridLines),
-      );
-    }
-    this.xLines[this.xAxisIndex].setCol(CONFIG.colors.axesLines);
-
-    this.yLines = [];
-    for (let y = -p.height / 2; y <= p.height / 2; y += this.yLineDistance) {
-      this.yLines.push(
-        new Line(p, -p.width / 2, y, p.width / 2, y, CONFIG.colors.gridLines),
-      );
-    }
-    this.yLines[this.yAxisIndex].setCol(CONFIG.colors.axesLines);
-  }
-
-  toggleCoordinates() {
-    this.coordinates = !this.coordinates;
-  }
-
-  c2p(coordinate) {
-    return this.p.createVector(
-      (coordinate.x / this.xStep) * this.xLineDistance -
-        this.xLines[this.xAxisIndex].a.x,
-      (coordinate.y / this.yStep) * this.yLineDistance -
-        this.yLines[this.yAxisIndex].a.y,
-    );
-  }
-
-  p2c(point) {
-    return this.p.createVector(
-      (this.xStep / this.xLineDistance) *
-        (point.x + this.xLines[this.xAxisIndex].a.x),
-      (this.yStep / this.yLineDistance) *
-        (point.y + this.yLines[this.yAxisIndex].a.y),
-    );
-  }
-
-  draw() {
-    for (const xLine of this.xLines) {
-      const index = this.xLines.indexOf(xLine);
-      xLine.draw();
-
-      if (!this.coordinates) continue;
-
-      const x = xLine.a.x;
-      const y = this.yLines[this.yAxisIndex].a.y;
-
-      let num = this.xMin + index * this.xStep;
-      if (num === 0) continue;
-
-      if (this.xPi) {
-        const rationalPart = num / Math.PI;
-        num = `${Math.abs(rationalPart) !== 1 ? this.p.round(rationalPart, 2) : rationalPart === -1 ? '-' : ''}π`;
-      }
-
-      this.p.scale(1, -1);
-      this.p.noStroke();
-      this.p.textSize(20);
-      this.p.fill(CONFIG.colors.textColor);
-
-      this.p.textAlign(this.p.LEFT, this.p.TOP);
-      this.p.text(num, x + 5, -y);
-      this.p.scale(1, -1);
-    }
-
-    for (const yLine of this.yLines) {
-      const index = this.yLines.indexOf(yLine);
-      yLine.draw();
-
-      if (!this.coordinates) continue;
-
-      const x = this.xLines[this.xAxisIndex].a.x;
-      const y = yLine.a.y;
-
-      let num = this.yMin + index * this.yStep;
-      if (num === 0) continue;
-
-      this.p.scale(1, -1);
-      this.p.noStroke();
-      this.p.textSize(16);
-      this.p.fill(CONFIG.colors.textColor);
-
-      this.p.textAlign(this.p.RIGHT, this.p.TOP);
-      this.p.text(num, x - 3, -y);
-      this.p.scale(1, -1);
-    }
+    //  constructor(p, ax, ay, bx, by, color, strokeWeight) {
+    // this.xAxisLine = new Line(p, ((this.xMin + this.xMax) / 2))
   }
 }
 
@@ -562,15 +481,16 @@ class Grid {
     [this.xMin, this.xMax, this.xStep] = this.xRange;
     this.xDistance = this.xMax - this.xMin;
     this.xLineDistance = (p.width * this.xStep) / this.xDistance;
-    this.xAxisIndex = -this.xMin / this.xStep;
     this.xPi = xPi;
 
     this.yRange = yRange;
     [this.yMin, this.yMax, this.yStep] = this.yRange;
     this.yDistance = this.yMax - this.yMin;
     this.yLineDistance = (p.height * this.yStep) / this.yDistance;
-    this.yAxisIndex = -this.yMin / this.yStep;
     this.yPi = yPi;
+
+    this.xAxisIndex = -this.xMin / this.xStep;
+    this.yAxisIndex = -this.yMin / this.yStep;
 
     this.fadedLineRatio = fadedLineRatio;
 
