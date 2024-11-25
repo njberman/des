@@ -172,6 +172,8 @@ let pendulumSimSketch = (p) => {
       Math.round((9 / 16) * tempWidth) - BUFFER,
     );
     canv.parent('pendulum-sim');
+
+    p.textFont(CMUFont2);
   };
 
   p.draw = () => {
@@ -206,8 +208,11 @@ let pendulumSimSketch = (p) => {
   };
 };
 
-let pendulumGraphAxes;
 let pendulumGraphSketch = (p) => {
+  let pendulumGraphAxes;
+
+  let t = 0;
+
   p.preload = () => {
     CMUFont3 = p.loadFont('assets/cmu.ttf');
   };
@@ -220,7 +225,20 @@ let pendulumGraphSketch = (p) => {
     );
     canv.parent('pendulum-graph');
 
-    pendulumGraphAxes = new Grid(p, [-1, 10, 1], false, [-5, 5, 1], false, 5);
+    p.scale(1, -1);
+
+    pendulumGraphAxes = new Grid(
+      p,
+      [-1, 21, 1],
+      false,
+      [-2 * p.PI, 2 * p.PI, p.PI],
+      true,
+      5,
+    );
+
+    pendulumGraphAxes.toggleCoordinates();
+
+    p.textFont(CMUFont3);
   };
 
   p.draw = () => {
@@ -229,6 +247,33 @@ let pendulumGraphSketch = (p) => {
     p.scale(1, -1);
 
     pendulumGraphAxes.draw();
+
+    if (pendulumPhaseSpace.simulating) {
+      const fps = p.getTargetFrameRate();
+      t += 1 / fps;
+
+      p.noFill();
+      p.strokeWeight(2);
+      p.stroke(224, 231, 34);
+
+      p.beginShape();
+
+      const simulatedUpToHerePoints = pendulumPhaseSpace.simulatedPoints.slice(
+        0,
+        pendulumPhaseSpace.simulatingIndex,
+      );
+
+      const dt = t / simulatedUpToHerePoints.length;
+      for (let i = 0; i < simulatedUpToHerePoints.length; i++) {
+        const theta = simulatedUpToHerePoints[i].x;
+        const point = pendulumGraphAxes.c2p(p.createVector(i * dt, theta));
+
+        p.vertex(point.x, point.y);
+      }
+      p.endShape();
+    } else {
+      t = 0;
+    }
   };
 };
 
@@ -378,6 +423,7 @@ class PhaseSpace {
     this.simulatedPoints = [];
     this.simulating = false;
     this.simulatingIndex = 0;
+    this.t = 0;
   }
 
   draw() {
@@ -557,7 +603,7 @@ class Grid {
 
   c2p(coordinate) {
     return this.p.createVector(
-      (coordinate.x / this.xStep) * this.xLineDistance -
+      (coordinate.x / this.xStep) * this.xLineDistance +
         this.xLines[this.xAxisIndex].a.x,
       (coordinate.y / this.yStep) * this.yLineDistance -
         this.yLines[this.yAxisIndex].a.y,
@@ -567,7 +613,7 @@ class Grid {
   p2c(point) {
     return this.p.createVector(
       (this.xStep / this.xLineDistance) *
-        (point.x + this.xLines[this.xAxisIndex].a.x),
+        (point.x - this.xLines[this.xAxisIndex].a.x),
       (this.yStep / this.yLineDistance) *
         (point.y + this.yLines[this.yAxisIndex].a.y),
     );
@@ -612,6 +658,11 @@ class Grid {
 
       let num = this.yMin + index * this.yStep;
       if (num === 0) continue;
+
+      if (this.yPi) {
+        const rationalPart = num / Math.PI;
+        num = `${Math.abs(rationalPart) !== 1 ? this.p.round(rationalPart, 2) : rationalPart === -1 ? '-' : ''}π`;
+      }
 
       this.p.scale(1, -1);
       this.p.noStroke();
