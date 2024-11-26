@@ -3,7 +3,7 @@ const BUFFER = 3;
 // Pendulum constants
 let g = 9.81;
 const L = 5.5;
-const mew = 0;
+const mew = 0.75;
 // Pendulum constants
 
 let grid;
